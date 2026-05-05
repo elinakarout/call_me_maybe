@@ -2,23 +2,18 @@
 
 PYTHON := python3
 
-PIP := pip3
-
-MAIN := a_maze_ing.py
-
-CONFIG := config.txt
+MAIN := src.main
 
 FILES := 
 
-
 install:
-	$(PIP) install -r requirements.txt
+	uv sync
 
 run:
-	$(PYTHON) $(MAIN) $(CONFIG)
+	uv run $(PYTHON) -m $(MAIN)
 
 debug:
-	$(PYTHON) -m pdb $(MAIN) $(CONFIG)
+	uv run $(PYTHON) -m pdb -m $(MAIN)
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
