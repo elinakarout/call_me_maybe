@@ -1,14 +1,16 @@
-from .read_input import read_data
-from llm_sdk import Small_LLM_Model
+from src.parser import read_definitions
+from pydantic import ValidationError
 
-model = Small_LLM_Model()
 
-def main():
-    test_cases = read_data()
-    for test_case in test_cases:
-        prompt = test_case["prompt"]
-        print(model.encode(prompt))
+def main() -> None:
+    definitions = read_definitions('data/input/functions_definition.json')
+    print(definitions)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ValidationError as e:
+        print(e.errors()[0]["msg"])
+    except Exception as e:
+        print(e)

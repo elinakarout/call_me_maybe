@@ -4,7 +4,7 @@ PYTHON := python3
 
 MAIN := src.main
 
-FILES := 
+FILES_DIR := src
 
 install:
 	uv sync
@@ -20,9 +20,9 @@ clean:
 	rm -rf .mypy_cache .pytest_cache
 
 lint:
-	flake8 $(FILES)
-	mypy $(FILES) . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	uv run flake8 $(FILES_DIR)
+	uv run mypy -p $(FILES_DIR) --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	flake8 $(FILES)
-	mypy $(FILES) --strict
+	uv run flake8 $(FILES_DIR)
+	uv run mypy -p $(FILES_DIR) --strict
