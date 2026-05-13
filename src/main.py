@@ -1,9 +1,9 @@
-from src.parser import read_definitions
+from src.parser import Definitions
 from pydantic import ValidationError
 
 
 def main() -> None:
-    definitions = read_definitions('data/input/functions_definition.json')
+    definitions = Definitions.from_file('data/input/functions_definition.json')
     print(definitions)
 
 
