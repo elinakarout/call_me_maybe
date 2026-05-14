@@ -30,7 +30,9 @@ def get_prompts(file_path: str) -> list[str]:
     return lst
 
 
-def parse_arguments(args: argparse.Namespace) -> None:
+def parse_arguments(
+                    args: argparse.Namespace
+                    ) -> tuple[list[str], list[Definitions]]:
     definitions = Definitions.from_file(args.functions_definition)
     prompts = get_prompts(args.input)
-    print(prompts, definitions)
+    return (prompts, definitions)

@@ -57,7 +57,7 @@ class Definitions(BaseModel):
             i += 1
 
     @classmethod
-    def from_file(cls, file_path: str) -> list["Definitions"]:
+    def from_file(cls, file_path: str) -> list[Self]:
         with open(file_path, 'r') as fd:
             data = json.load(fd)
         Definitions.mandatory_fields(data)

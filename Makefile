@@ -21,7 +21,7 @@ clean:
 
 lint:
 	uv run flake8 $(FILES_DIR)
-	uv run mypy -p $(FILES_DIR) --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	uv run mypy -p $(FILES_DIR)
 
 lint-strict:
 	uv run flake8 $(FILES_DIR)

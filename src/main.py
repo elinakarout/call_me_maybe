@@ -1,4 +1,5 @@
 from src.parser import parse_arguments
+from src.model import function_call
 from pydantic import ValidationError
 import argparse
 
@@ -21,7 +22,8 @@ def main() -> None:
         default='data/output/function_calling_results.json'
         )
     args = parser.parse_args()
-    parse_arguments(args)
+    prompts, definitions = parse_arguments(args)
+    function_call(definitions, prompts, args.output)
 
 
 if __name__ == "__main__":
