@@ -25,14 +25,12 @@ def get_prompts(file_path: str) -> list[str]:
     lst = [
         value
         for prompt in data
-        for key, value in prompt.items()
+        for _, value in prompt.items()
         ]
     return lst
 
 
 def parse_arguments(args: argparse.Namespace) -> None:
-    definitions = Definitions.from_file(
-        'data/input/' + args.functions_definition
-        )
-    prompts = get_prompts('data/input/' + args.input)
+    definitions = Definitions.from_file(args.functions_definition)
+    prompts = get_prompts(args.input)
     print(prompts, definitions)

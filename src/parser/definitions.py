@@ -1,6 +1,6 @@
 from pydantic import BaseModel, model_validator
 from pydantic_core import PydanticCustomError
-from typing import Literal, Self
+from typing import Literal, Self, Any
 import json
 
 
@@ -20,7 +20,7 @@ class Definitions(BaseModel):
         return self
 
     @staticmethod
-    def mandatory_fields(data: list) -> None:
+    def mandatory_fields(data: list[dict[str, Any]]) -> None:
         i = 1
         for function in data:
             if "name" not in function:
@@ -38,7 +38,7 @@ class Definitions(BaseModel):
             i += 1
 
     @staticmethod
-    def function_values(data: list) -> None:
+    def function_values(data: list[dict[str, Any]]) -> None:
         i = 1
         for function in data:
             if not isinstance(function["parameters"], dict):
