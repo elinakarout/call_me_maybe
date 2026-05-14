@@ -1,10 +1,27 @@
-from src.parser import Definitions
+from src.parser import parse_arguments
 from pydantic import ValidationError
+import argparse
 
 
 def main() -> None:
-    definitions = Definitions.from_file('data/input/functions_definition.json')
-    print(definitions)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--functions_definition",
+        nargs="?",
+        default='functions_definition.json'
+        )
+    parser.add_argument(
+        "--input",
+        nargs="?",
+        default='function_calling_tests.json'
+        )
+    parser.add_argument(
+        "--output",
+        nargs="?",
+        default='function_calling_results.json'
+        )
+    args = parser.parse_args()
+    parse_arguments(args)
 
 
 if __name__ == "__main__":
