@@ -29,38 +29,33 @@ def find_best_function(
 ) -> str:
     available_functions = [definition.name for definition in definitions]
     prompt += "\n\nBest function name: "
-    for i in range(80):
-        answer = ""
+    answer = ""
+    for i in range(50):
         tokens = model.encode(prompt + answer)
-        next_tokens = model.get_logits_from_input_ids(tokens[0].tolist())
+        scores = model.get_logits_from_input_ids(tokens[0].tolist())
         best_score = float("-inf")
+        best_answer = ""
         for function in available_functions:
-            tokens = model.encode(function)
-            print(f"token: {tokens}")
-            # print(f"decoded token: {model.decode(token[i])}")
-            # print(f"probability: {next_tokens[token[i]]}")
-            # if [token[0]] > best_score:
-                # best_score = score
-                # best_token = next_token
-        # next_token_word = model.decode(best_token)    
-        # if any(
-            # func.startswith(answer + next_token_word)
-            # for func in available_functions
-        # ):
-            # answer += next_token_word
-        # if answer.strip() in available_functions:
-            # return answer.strip()
-    # return ""
+            tokens = model.encode(function)[0].tolist()
+            if i < len(tokens):
+                score = scores[tokens[i]]
+                if score > best_score:
+                    best_score = score
+                    best_answer = model.decode([tokens[i]])
+        answer += best_answer
+        if answer in available_functions:
+            return answer
+    return ""
 
 
 def function_call(definitions: list[Definitions],
                   prompts: list[str],
                   outfile: str) -> None:
     model = Small_LLM_Model()
-    prompt = model_prompt(model, prompts[0], definitions)
-    best_function = find_best_function(model, prompt, definitions)
-    print(best_function)
-    prompt += "\n\nBest function name: "
+    for question in prompts:
+        prompt = model_prompt(model, question, definitions)
+        name = find_best_function(model, prompt, definitions)
+        # parameters = find_parameters(model, prompt, definitions, name)
     # tokens = model.encode(prompt)
     # print(tokens)
     # next_token = model.get_logits_from_input_ids(tokens[0].tolist())
