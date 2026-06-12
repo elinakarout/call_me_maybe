@@ -1,5 +1,5 @@
 from src.parser import parse_arguments
-from src.model import function_call
+from src.model import Model
 from pydantic import ValidationError
 import argparse
 
@@ -23,7 +23,8 @@ def main() -> None:
         )
     args = parser.parse_args()
     prompts, definitions = parse_arguments(args)
-    function_call(definitions, prompts, args.output)
+    model = Model(definitions, prompts, args.output)
+    model.function_calls()
 
 
 if __name__ == "__main__":

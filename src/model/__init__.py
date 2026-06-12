@@ -1,3 +1,3 @@
-from .model import function_call
+from .model import Model
 
-__all__ = ["function_call"]
+__all__ = ["Model"]
