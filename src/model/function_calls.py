@@ -32,26 +32,26 @@ class FunctionCaller():
                         best_answer = self.model.llm.decode([tokens[i]])
             answer += best_answer
             if answer in available_functions:
-                print(answer)
                 return answer
         return ""
 
     def find_parameters(self) -> list[str]:
         prompt = "Select the most appropriate parameters for this request."
+        prompt += "\nAdd a double quote (\") at the end of string parameters, to be later used in a json file"
+        prompt += "\nIf there is a dash (-) before a number in the request, keep it"
         params = []
         for definition in self.definitions:
             if definition.name == self.function_name:
                 function = definition
+        prompt += f"\n\nRequest: {self.request}"
         prompt += f"\n\nfunction name: {function.name}"
         prompt += f"\nfunction description: {function.description}"
         prompt += f"\nfunction parameters:"
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
-        prompt += f"\n\nRequest: {self.request}"
-        prompt += f"\n\nParameters:"
+        prompt += f"\nThe correct parameters for the function call are:"
         for parameter, p_type in function.parameters.items():
-            prompt += f"\n\n{parameter}: "
-            print(parameter)
+            prompt += f"\n\n{parameter}: \""
             if p_type == "number":
                 param = self.find_number(prompt)
                 prompt += param
@@ -64,13 +64,15 @@ class FunctionCaller():
                 param = self.find_string(prompt)
                 prompt += param
                 params.append(param)
-            print(param)
+            print(f"[{param}]")
         return params
 
     def find_number(self, prompt: str) -> str:
-        valid_tokens = [i for i in range(15, 25)]
-        valid_tokens.append(13)
-        valid_tokens.append(12)
+        valid_tokens = []
+        for number in map(str, range(10)):
+            valid_tokens.append(self.model.value_to_token[number])
+        valid_tokens.append(self.model.value_to_token["."])
+        valid_tokens.append(self.model.value_to_token["-"])
         answer = ""
         for i in range(50):
             tokens = self.model.llm.encode(prompt + answer)
@@ -81,6 +83,10 @@ class FunctionCaller():
                     if scores[token] > best_score:
                         best_score = scores[token]
                         best_answer = self.model.llm.decode([token])
+            if i == 0:
+                valid_tokens.remove(self.model.value_to_token["-"])
+            if best_answer == ".":
+                valid_tokens.remove(self.model.value_to_token['.'])
             answer += best_answer
             if ("." in answer and answer.endswith("0")):
                 return answer
@@ -110,21 +116,26 @@ class FunctionCaller():
 
 
     def find_string(self, prompt: str) -> str:
-        valid_words = self.request.split(" ")
-        answer = ""
-        for i in range(50):
-            tokens = self.model.llm.encode(prompt + answer)
-            scores = self.model.llm.get_logits_from_input_ids(tokens[0].tolist())
+        print(f"Prompt: \n [{prompt}]")
+        tokens = self.model.llm.encode(prompt)[0].tolist()
+        prompt_len = len(tokens)
+        for _ in range(30):
+            scores = self.model.llm.get_logits_from_input_ids(tokens)
             best_score = float("-inf")
-            best_answer = ""
-            for word in valid_words:
-                tokens = self.model.llm.encode(word)[0].tolist()
-                if i < len(tokens):
-                    score = scores[tokens[i]]
-                    if score > best_score:
-                        best_score = score
-                        best_answer = self.model.llm.decode([tokens[i]])
-            answer += best_answer
-            if answer in valid_words:
-                return answer
+            for token, value in self.model.token_to_value.items():
+                if token == self.model.value_to_token['"']:
+                    continue
+                if '"' in value:
+                    scores[token] = float("-inf")
+            for i in range(len(scores)):
+                if scores[i] > best_score:
+                    best_score = scores[i]
+                    best_token = i
+            tokens.append(best_token)
+            if best_token == self.model.value_to_token['"']:
+                break
+        answer_tokens = tokens[prompt_len:]
+        answer = self.model.llm.decode(answer_tokens)
+        if not answer.endswith('"'):
+            answer += '"'
         return answer

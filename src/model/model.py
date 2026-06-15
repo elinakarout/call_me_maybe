@@ -15,16 +15,26 @@ class Model():
         self.definitions = definitions
         self.requests = requests
         self.outfile = outfile
-        self.vocab = self.get_vocab()
+        self.token_to_value = self.get_token_to_value()
+        self.value_to_token = self.get_value_to_token()
         self.prompt = self.get_model_prompt()
 
-    def get_vocab(self):
+    def get_token_to_value(self):
         path = self.llm.get_path_to_vocab_file()
         vocab = {}
         with open(path, 'r') as fd:
             content = json.load(fd)
         for value, token in content.items():
             vocab[token] = value
+        return vocab
+    
+    def get_value_to_token(self):
+        path = self.llm.get_path_to_vocab_file()
+        vocab = {}
+        with open(path, 'r') as fd:
+            content = json.load(fd)
+        for value, token in content.items():
+            vocab[value] = token
         return vocab
 
     def get_model_prompt(self) -> str:
@@ -46,4 +56,3 @@ class Model():
         for request in self.requests:
             print(request)
             caller = FunctionCaller(self, request)
-            print()
