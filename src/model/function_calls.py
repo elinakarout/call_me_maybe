@@ -32,12 +32,14 @@ class FunctionCaller():
                         best_answer = self.model.llm.decode([tokens[i]])
             answer += best_answer
             if answer in available_functions:
+                self.model.output += f"        \"name\": \"{answer}\",\n"
                 return answer
         return ""
 
     def find_parameters(self) -> list[str]:
         prompt = "Select the most appropriate parameters for this request."
         prompt += "\nAdd a double quote (\") at the end of string parameters, to be later used in a json file"
+        prompt += "\nAnswer with only  the parameter, Nothing else"
         prompt += "\nIf there is a dash (-) before a number in the request, keep it"
         params = []
         for definition in self.definitions:
@@ -50,8 +52,10 @@ class FunctionCaller():
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
         prompt += f"\nThe correct parameters for the function call are:"
+        self.model.output += "        \"parameters\": {\n"
         for parameter, p_type in function.parameters.items():
             prompt += f"\n\n{parameter}: \""
+            self.model.output += f"            \"{parameter}\": "
             if p_type == "number":
                 param = self.find_number(prompt)
                 prompt += param
@@ -61,10 +65,13 @@ class FunctionCaller():
                 prompt += param
                 params.append(param)
             if p_type == "string":
+                self.model.output += "\""
                 param = self.find_string(prompt)
                 prompt += param
                 params.append(param)
-            print(f"[{param}]")
+            self.model.output += f"{param},\n"
+        self.model.output = self.model.output[:-2]
+        self.model.output += "\n        }\n    },\n"
         return params
 
     def find_number(self, prompt: str) -> str:
@@ -116,7 +123,6 @@ class FunctionCaller():
 
 
     def find_string(self, prompt: str) -> str:
-        print(f"Prompt: \n [{prompt}]")
         tokens = self.model.llm.encode(prompt)[0].tolist()
         prompt_len = len(tokens)
         for _ in range(30):

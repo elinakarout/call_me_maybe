@@ -18,6 +18,7 @@ class Model():
         self.token_to_value = self.get_token_to_value()
         self.value_to_token = self.get_value_to_token()
         self.prompt = self.get_model_prompt()
+        self.output = ""
 
     def get_token_to_value(self):
         path = self.llm.get_path_to_vocab_file()
@@ -51,8 +52,20 @@ class Model():
             i += 1
         return prompt
     
+    @staticmethod
+    def remove_double_quotes(s: str) -> str:
+        return s.replace('"', '\'')
+
+
     def function_calls(self):
         from .function_calls import FunctionCaller
+        self.output += "[\n"
         for request in self.requests:
-            print(request)
+            self.output += "    {\n"
+            prompt = self.remove_double_quotes(request)
+            self.output += f"        \"prompt\": \"{prompt}\",\n"
             caller = FunctionCaller(self, request)
+        self.output = self.output[:-2]
+        self.output += "\n]"
+        with open(self.outfile, 'w') as fd:
+            fd.write(self.output)
