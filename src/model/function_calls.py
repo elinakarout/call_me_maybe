@@ -77,30 +77,33 @@ class FunctionCaller():
         return params
 
     def find_number(self, prompt: str) -> str:
-        valid_tokens = []
-        for number in map(str, range(10)):
-            valid_tokens.append(self.model.value_to_token[number])
-        valid_tokens.append(self.model.value_to_token["."])
-        valid_tokens.append(self.model.value_to_token["-"])
+        tokens = self.model.llm.encode(prompt)[0].tolist()
+        prompt_len = len(tokens)
+        valid_answers = [str(i) for i in range(10)]
+        valid_answers.append(".")
+        valid_answers.append("-")
         answer = ""
-        for i in range(50):
-            tokens = self.model.llm.encode(prompt + answer)
-            scores = self.model.llm.get_logits_from_input_ids(
-                tokens[0].tolist()
-            )
+        for i in range(30):
+            scores = self.model.llm.get_logits_from_input_ids(tokens)
             best_score = float("-inf")
-            best_answer = ""
-            for token in valid_tokens:
-                if scores[token] > best_score:
-                    best_score = scores[token]
-                    best_answer = self.model.llm.decode([token])
+            for token, value in self.model.token_to_value.items():
+                if value not in valid_answers:
+                    scores[token] = float("-inf")
+                else:
+                    if scores[token] > best_score:
+                        best_score = scores[token]
+                        best_token = token
+            print(f"score of -: {scores[self.model.value_to_token['-']]}")
+            print(f"score of {self.model.token_to_value[best_token]}: {best_score}")
+            tokens.append(best_token)
+            if "." not in  valid_answers:
+                break
             if i == 0:
-                valid_tokens.remove(self.model.value_to_token["-"])
-            if best_answer == ".":
-                valid_tokens.remove(self.model.value_to_token['.'])
-            answer += best_answer
-            if ("." in answer and answer.endswith("0")):
-                return answer
+                valid_answers.remove("-")
+            if best_token == self.model.value_to_token["."]:
+                valid_answers.remove('.')
+        answer_tokens = tokens[prompt_len:]
+        answer = str(self.model.llm.decode(answer_tokens))
         return answer
 
     def find_bool(self, prompt: str) -> str:
@@ -151,3 +154,4 @@ class FunctionCaller():
         if not answer.endswith('"'):
             answer += '"'
         return answer
+
