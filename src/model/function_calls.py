@@ -20,7 +20,9 @@ class FunctionCaller():
         answer = ""
         for i in range(50):
             tokens = self.model.llm.encode(prompt + answer)
-            scores = self.model.llm.get_logits_from_input_ids(tokens[0].tolist())
+            scores = self.model.llm.get_logits_from_input_ids(
+                tokens[0].tolist()
+            )
             best_score = float("-inf")
             best_answer = ""
             for function in available_functions:
@@ -38,9 +40,9 @@ class FunctionCaller():
 
     def find_parameters(self) -> list[str]:
         prompt = "Select the most appropriate parameters for this request."
-        prompt += "\nAdd a double quote (\") at the end of string parameters, to be later used in a json file"
+        prompt += "\nAdd a double quote (\") at the end of string parameters,"
+        prompt += "to be later used in a json file"
         prompt += "\nAnswer with only  the parameter, Nothing else"
-        prompt += "\nIf there is a dash (-) before a number in the request, keep it"
         params = []
         for definition in self.definitions:
             if definition.name == self.function_name:
@@ -48,10 +50,10 @@ class FunctionCaller():
         prompt += f"\n\nRequest: {self.request}"
         prompt += f"\n\nfunction name: {function.name}"
         prompt += f"\nfunction description: {function.description}"
-        prompt += f"\nfunction parameters:"
+        prompt += "\nfunction parameters:"
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
-        prompt += f"\nThe correct parameters for the function call are:"
+        prompt += "\nThe correct parameters for the function call are:"
         self.model.output += "        \"parameters\": {\n"
         for parameter, p_type in function.parameters.items():
             prompt += f"\n\n{parameter}: \""
@@ -83,13 +85,15 @@ class FunctionCaller():
         answer = ""
         for i in range(50):
             tokens = self.model.llm.encode(prompt + answer)
-            scores = self.model.llm.get_logits_from_input_ids(tokens[0].tolist())
+            scores = self.model.llm.get_logits_from_input_ids(
+                tokens[0].tolist()
+            )
             best_score = float("-inf")
             best_answer = ""
             for token in valid_tokens:
-                    if scores[token] > best_score:
-                        best_score = scores[token]
-                        best_answer = self.model.llm.decode([token])
+                if scores[token] > best_score:
+                    best_score = scores[token]
+                    best_answer = self.model.llm.decode([token])
             if i == 0:
                 valid_tokens.remove(self.model.value_to_token["-"])
             if best_answer == ".":
@@ -107,7 +111,9 @@ class FunctionCaller():
         answer = ""
         for i in range(50):
             tokens = self.model.llm.encode(prompt + answer)
-            scores = self.model.llm.get_logits_from_input_ids(tokens[0].tolist())
+            scores = self.model.llm.get_logits_from_input_ids(
+                tokens[0].tolist()
+            )
             best_score = float("-inf")
             best_answer = ""
             for token in valid_tokens:
@@ -121,10 +127,10 @@ class FunctionCaller():
                 return answer
         return answer
 
-
     def find_string(self, prompt: str) -> str:
         tokens = self.model.llm.encode(prompt)[0].tolist()
         prompt_len = len(tokens)
+        answer = ""
         for _ in range(30):
             scores = self.model.llm.get_logits_from_input_ids(tokens)
             best_score = float("-inf")
@@ -141,7 +147,7 @@ class FunctionCaller():
             if best_token == self.model.value_to_token['"']:
                 break
         answer_tokens = tokens[prompt_len:]
-        answer = self.model.llm.decode(answer_tokens)
+        answer = str(self.model.llm.decode(answer_tokens))
         if not answer.endswith('"'):
             answer += '"'
         return answer

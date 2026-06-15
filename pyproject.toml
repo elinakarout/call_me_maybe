@@ -1,9 +1,9 @@
 [project]
 name = "call-me-maybe"
 version = "0.1.0"
-description = "Add your description here"
+description = "Introduction to function calling in LLMs"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "pydantic>=2.13.4",
     "torch>=2.12.0",
@@ -14,4 +14,10 @@ dependencies = [
 dev = [
     "flake8>=7.3.0",
     "mypy>=2.1.0",
+]
+
+[tool.mypy]
+python_version = "3.11" 
+plugins = [
+    "pydantic.mypy"
 ]

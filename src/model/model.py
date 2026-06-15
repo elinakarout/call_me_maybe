@@ -1,6 +1,5 @@
 from ..parser import Definitions
 from llm_sdk import Small_LLM_Model
-import torch
 import json
 
 
@@ -20,7 +19,7 @@ class Model():
         self.prompt = self.get_model_prompt()
         self.output = ""
 
-    def get_token_to_value(self):
+    def get_token_to_value(self) -> dict[int, str]:
         path = self.llm.get_path_to_vocab_file()
         vocab = {}
         with open(path, 'r') as fd:
@@ -28,8 +27,8 @@ class Model():
         for value, token in content.items():
             vocab[token] = value
         return vocab
-    
-    def get_value_to_token(self):
+
+    def get_value_to_token(self) -> dict[str, int]:
         path = self.llm.get_path_to_vocab_file()
         vocab = {}
         with open(path, 'r') as fd:
@@ -46,25 +45,24 @@ class Model():
             prompt += f"\n\nfunction {i}:"
             prompt += f"\nfunction name: {definition.name}"
             prompt += f"\nfunction description: {definition.description}"
-            prompt += f"\nfunction parameters:"
+            prompt += "\nfunction parameters:"
             for parameter, p_type in definition.parameters.items():
                 prompt += f" {parameter}({p_type})"
             i += 1
         return prompt
-    
+
     @staticmethod
     def remove_double_quotes(s: str) -> str:
         return s.replace('"', '\'')
 
-
-    def function_calls(self):
+    def function_calls(self) -> None:
         from .function_calls import FunctionCaller
         self.output += "[\n"
         for request in self.requests:
             self.output += "    {\n"
             prompt = self.remove_double_quotes(request)
             self.output += f"        \"prompt\": \"{prompt}\",\n"
-            caller = FunctionCaller(self, request)
+            FunctionCaller(self, request)
         self.output = self.output[:-2]
         self.output += "\n]"
         with open(self.outfile, 'w') as fd:
