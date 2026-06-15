@@ -39,24 +39,25 @@ class FunctionCaller():
         return ""
 
     def find_parameters(self) -> list[str]:
-        prompt = "Select the most appropriate parameters for this request."
-        prompt += "\nAdd a double quote (\") at the end of string parameters,"
-        prompt += "to be later used in a json file"
-        prompt += "\nAnswer with only  the parameter, Nothing else"
+        # prompt = "Select the most appropriate parameters for this request."
+        # prompt += "\nAdd a double quote (\") at the end of string parameters,"
+        # prompt += "to be later used in a json file"
+        # prompt += "\nAnswer with only  the parameter, Nothing else"
+        prompt = ""
         params = []
         for definition in self.definitions:
             if definition.name == self.function_name:
                 function = definition
-        prompt += f"\n\nRequest: {self.request}"
+        prompt += f"Request: {self.request}"
         prompt += f"\n\nfunction name: {function.name}"
         prompt += f"\nfunction description: {function.description}"
         prompt += "\nfunction parameters:"
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
-        prompt += "\nThe correct parameters for the function call are:"
+        # prompt += "\nThe correct parameters for the function call are:"
         self.model.output += "        \"parameters\": {\n"
         for parameter, p_type in function.parameters.items():
-            prompt += f"\n\n{parameter}: \""
+            prompt += f"\n\n{parameter}: "
             self.model.output += f"            \"{parameter}\": "
             if p_type == "number":
                 param = self.find_number(prompt)
@@ -68,7 +69,7 @@ class FunctionCaller():
                 params.append(param)
             if p_type == "string":
                 self.model.output += "\""
-                param = self.find_string(prompt)
+                param = self.find_string(prompt + '"')
                 prompt += param
                 params.append(param)
             self.model.output += f"{param},\n"
@@ -76,7 +77,11 @@ class FunctionCaller():
         self.model.output += "\n        }\n    },\n"
         return params
 
-    def find_number(self, prompt: str) -> str:
+    def find_number(self, half_prompt: str) -> str:
+        prompt = "Select the most appropriate parameters for this request"
+        prompt += "\nAnswer with only the parameter, Nothing else\n\n"
+        prompt += half_prompt
+        print(prompt)
         tokens = self.model.llm.encode(prompt)[0].tolist()
         prompt_len = len(tokens)
         valid_answers = [str(i) for i in range(10)]
@@ -85,16 +90,12 @@ class FunctionCaller():
         answer = ""
         for i in range(30):
             scores = self.model.llm.get_logits_from_input_ids(tokens)
-            best_score = float("-inf")
             for token, value in self.model.token_to_value.items():
                 if value not in valid_answers:
                     scores[token] = float("-inf")
-                else:
-                    if scores[token] > best_score:
-                        best_score = scores[token]
-                        best_token = token
-            print(f"score of -: {scores[self.model.value_to_token['-']]}")
-            print(f"score of {self.model.token_to_value[best_token]}: {best_score}")
+            best_token = scores.index(max(scores))
+            # print(f"score of -: {scores[self.model.value_to_token['-']]}")
+            # print(f"score of {self.model.token_to_value[best_token]}: {best_score}")
             tokens.append(best_token)
             if "." not in  valid_answers:
                 break
@@ -130,7 +131,12 @@ class FunctionCaller():
                 return answer
         return answer
 
-    def find_string(self, prompt: str) -> str:
+    def find_string(self, half_prompt: str) -> str:
+        prompt = "Select the most appropriate parameters for this request."
+        prompt += "\nAdd a double quote (\") at the end of string parameters,"
+        prompt += "to be later used in a json file"
+        prompt += "\nAnswer with only  the parameter, Nothing else"
+        prompt += half_prompt
         tokens = self.model.llm.encode(prompt)[0].tolist()
         prompt_len = len(tokens)
         answer = ""
