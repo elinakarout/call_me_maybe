@@ -1,5 +1,6 @@
 from src.parser import parse_arguments
 from src.model import Model
+from pydantic import ValidationError
 import argparse
 
 

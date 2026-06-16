@@ -22,7 +22,3 @@ run: clean
 lint:
 	uv run flake8 $(FILES_DIR)
 	uv run mypy $(FILES_DIR)
-
-lint-strict:
-	uv run flake8 $(FILES_DIR)
-	uv run mypy $(FILES_DIR) --strict

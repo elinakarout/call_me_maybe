@@ -40,29 +40,24 @@ class FunctionCaller():
         return ""
 
     def find_parameters(self) -> list[str]:
-        # prompt = "Select the most appropriate parameters for this request."
-        # prompt += (
-        #     "\nAdd a double quote (\") at the end of string parameters,"
-        # )
-        # prompt += "to be later used in a json file"
-        # prompt += "\nAnswer with only  the parameter, Nothing else"
-        prompt = ""
         params = []
         for definition in self.definitions:
             if definition.name == self.function_name:
                 function = definition
-        prompt += f"Request: {self.request}"
+        prompt = f"Request: {self.request}"
         prompt += f"\n\nfunction name: {function.name}"
         prompt += f"\nfunction description: {function.description}"
         prompt += "\nfunction parameters:"
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
             types = p_type
-        if p_type == "number":
-            prompt += "\nSelect the most appropriate parameters for this request"
+        if types == "number":
+            prompt += "\nSelect the most appropriate "
+            prompt += "parameters for this request"
             prompt += "\nAnswer with only the parameter, Nothing else"
         else:
-            prompt += "Select the most appropriate parameters for this request."
+            prompt += "Select the most appropriate "
+            prompt += "parameters for this request."
             prompt += "\nAdd a double quote (\") at the end of string"
             prompt += " parameters, to be later used in a json file"
             prompt += "\nAnswer with only  the parameter, Nothing else"
@@ -188,4 +183,3 @@ class FunctionCaller():
         if not answer.endswith('"'):
             answer += '"'
         return answer
-
