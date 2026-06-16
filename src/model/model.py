@@ -1,5 +1,6 @@
 from ..parser import Definitions
 from llm_sdk import Small_LLM_Model
+from pathlib import Path
 import json
 
 
@@ -65,5 +66,7 @@ class Model():
             FunctionCaller(self, request)
         self.output = self.output[:-2]
         self.output += "\n]"
-        with open(self.outfile, 'w') as fd:
+        path = Path(self.outfile)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'w') as fd:
             fd.write(self.output)
