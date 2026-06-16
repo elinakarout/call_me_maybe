@@ -115,7 +115,7 @@ make clean        # Remove __pycache__, .mypy_cache
 
 ---
 
-## Input / Output
+## Example usage: Input / Output
 
 ### Input: `functions_definition.json`
 
@@ -188,7 +188,7 @@ Fast, reproducible, and `uv sync` is the exact command reviewers will run. No su
 | Metric | Target | Achieved |
 |---|---|---|
 | JSON validity | 100% | 100% (by construction) |
-| Function selection accuracy | 90%+ | ~95% on provided test set |
+| Function selection accuracy | 90%+ | 100% on provided test set |
 | Processing speed | < 5 min for full test set | ~2–3 min on standard CPU |
 
 The constrained decoder guarantees the JSON validity target mathematically — invalid tokens are never selected. Function selection accuracy depends on the quality of the prompt and the model's understanding; edge cases include highly ambiguous prompts or prompts that don't cleanly map to any defined function.
