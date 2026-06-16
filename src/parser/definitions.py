@@ -7,8 +7,8 @@ import json
 class Definitions(BaseModel):
     name: str
     description: str
-    parameters: dict[str, Literal["string", "number", "boolean"]]
-    returns: Literal["string", "number", "boolean"]
+    parameters: dict[str, Literal["string", "number", "boolean", "integer"]]
+    returns: Literal["string", "number", "boolean", "integer"]
 
     @model_validator(mode="after")
     def definition_validation(self) -> Self:

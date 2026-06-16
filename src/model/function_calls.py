@@ -51,7 +51,7 @@ class FunctionCaller():
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
             types = p_type
-        if types == "number":
+        if types == "number" or types == "integer":
             prompt += "\nSelect the most appropriate "
             prompt += "parameters for this request"
             prompt += "\nAnswer with only the parameter, Nothing else"
@@ -67,16 +67,18 @@ class FunctionCaller():
         for parameter, p_type in function.parameters.items():
             prompt += f"\n\n{parameter} = "
             self.model.output += f"            \"{parameter}\": "
-            if p_type == "number":
+            if p_type == "number" or p_type == "integer":
                 param = self.find_number(prompt, parameter, number_idx)
                 number_idx += 1
                 prompt += param
+                if p_type == "integer":
+                    param = param[:-2]
                 params.append(param)
-            if p_type == "boolean":
+            elif p_type == "boolean":
                 param = self.find_bool(prompt)
                 prompt += param
                 params.append(param)
-            if p_type == "string":
+            elif p_type == "string":
                 self.model.output += "\""
                 param = self.find_string(prompt + '"')
                 prompt += param
@@ -120,10 +122,6 @@ class FunctionCaller():
                 if value not in valid_answers:
                     scores[token] = float("-inf")
             best_token = scores.index(max(scores))
-            # print(f"score of -: "
-            #       f"{scores[self.model.value_to_token['-']]}")
-            # print(f"score of {self.model.token_to_value[best_token]}: "
-            #       f"{best_score}")
             tokens.append(best_token)
             if "." not in valid_answers:
                 break
