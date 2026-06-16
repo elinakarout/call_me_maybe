@@ -1,4 +1,5 @@
 from .model import Model
+from ..parser import Definitions
 import re
 
 
@@ -9,9 +10,13 @@ class FunctionCaller():
         self.prompt = model.prompt + f"\n\nUser Request: {request}"
         self.definitions = model.definitions
         self.function_name = self.find_best_function()
+        self.function = self.get_function()
         self.parameters = self.find_parameters()
 
     def find_best_function(self) -> str:
+        """Returns the best function from the definitions provided
+        To the specific user request
+        """
         available_functions = [
             definition.name
             for definition in self.definitions
@@ -39,8 +44,13 @@ class FunctionCaller():
                 return answer
         return ""
 
-    def find_parameters(self) -> list[str]:
-        params = []
+    def get_function(self) -> Definitions:
+        for definition in self.definitions:
+            if definition.name == self.function_name:
+                function = definition
+        return function
+
+    def system_prompt_for_params(self) -> str:
         for definition in self.definitions:
             if definition.name == self.function_name:
                 function = definition
@@ -62,35 +72,43 @@ class FunctionCaller():
             prompt += " parameters, to be later used in a json file"
             prompt += "\nAnswer with only  the parameter, Nothing else"
             prompt += "\nThe correct parameters for the function call are:"
+        return prompt
+
+    def find_parameters(self) -> list[str]:
+        """Calls the specific function for each parameter type,
+        and returns the arguments provided by the model.
+        """
+        params = []
+        self.prompt = self.system_prompt_for_params()
         self.model.output += "        \"parameters\": {\n"
         number_idx = 0
-        for parameter, p_type in function.parameters.items():
-            prompt += f"\n\n{parameter} = "
+        for parameter, p_type in self.function.parameters.items():
+            self.prompt += f"\n\n{parameter} = "
             self.model.output += f"            \"{parameter}\": "
             if p_type == "number" or p_type == "integer":
-                param = self.find_number(prompt, parameter, number_idx)
+                param = self.find_number(parameter, number_idx)
                 number_idx += 1
-                prompt += param
+                self.prompt += param
                 if p_type == "integer":
                     param = param[:-2]
                 params.append(param)
             elif p_type == "boolean":
-                param = self.find_bool(prompt)
-                prompt += param
+                param = self.find_bool()
+                self.prompt += param
                 params.append(param)
             elif p_type == "string":
                 self.model.output += "\""
-                param = self.find_string(prompt + '"')
-                prompt += param
+                self.prompt += "\""
+                param = self.find_string()
+                self.prompt += param
                 params.append(param)
             self.model.output += f"{param},\n"
         self.model.output = self.model.output[:-2]
         self.model.output += "\n        }\n    },\n"
         return params
 
-    def find_number(self, prompt: str, parameter: str, number_idx: int) -> str:
-        tokens = self.model.llm.encode(prompt)[0].tolist()
-        prompt_len = len(tokens)
+    def generate_sign(self, number_idx: int, tokens: list[int]) -> int:
+        """Generates first token for number params (the sign)"""
         request_numbers = re.findall(r"-?\d+(?:\.\d+)?", self.request)
         is_negative = False
         if number_idx < len(request_numbers):
@@ -108,14 +126,20 @@ class FunctionCaller():
                 if cleaned == "+" or cleaned[0] in "0123456789":
                     if "\n" not in value and "\r" not in value:
                         valid_first_answer.append(value)
-        valid_answers = [str(i) for i in range(10)]
-        valid_answers.append(".")
         scores = self.model.llm.get_logits_from_input_ids(tokens)
         for token, value in self.model.token_to_value.items():
             if value not in valid_first_answer:
                 scores[token] = float("-inf")
-        best_token = scores.index(max(scores))
-        tokens.append(best_token)
+        best_token = int(scores.index(max(scores)))
+        return best_token
+
+    def find_number(self, parameter: str, number_idx: int) -> str:
+        """Constrained decoding for number parameters"""
+        tokens = self.model.llm.encode(self.prompt)[0].tolist()
+        prompt_len = len(tokens)
+        valid_answers = [str(i) for i in range(10)]
+        valid_answers.append(".")
+        tokens.append(self.generate_sign(number_idx, tokens))
         for i in range(30):
             scores = self.model.llm.get_logits_from_input_ids(tokens)
             for token, value in self.model.token_to_value.items():
@@ -133,14 +157,15 @@ class FunctionCaller():
             answer = answer[1:]
         return answer
 
-    def find_bool(self, prompt: str) -> str:
+    def find_bool(self) -> str:
+        """Constrained decoding for boolean parameters"""
         valid_tokens = [
             self.model.llm.encode("true")[0].tolist(),
             self.model.llm.encode("false")[0].tolist()
         ]
         answer = ""
         for i in range(50):
-            tokens = self.model.llm.encode(prompt + answer)
+            tokens = self.model.llm.encode(self.prompt + answer)
             scores = self.model.llm.get_logits_from_input_ids(
                 tokens[0].tolist()
             )
@@ -157,8 +182,9 @@ class FunctionCaller():
                 return answer
         return answer
 
-    def find_string(self, prompt: str) -> str:
-        tokens = self.model.llm.encode(prompt)[0].tolist()
+    def find_string(self) -> str:
+        """Constrained decoding for strings parameters"""
+        tokens = self.model.llm.encode(self.prompt)[0].tolist()
         prompt_len = len(tokens)
         answer = ""
         for _ in range(30):

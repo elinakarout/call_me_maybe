@@ -1,26 +1,18 @@
-from pydantic import BaseModel, model_validator
-from pydantic_core import PydanticCustomError
+from pydantic import BaseModel
 from typing import Literal, Self, Any
 import json
 
 
 class Definitions(BaseModel):
+    """Class to store all function definitions"""
     name: str
     description: str
     parameters: dict[str, Literal["string", "number", "boolean", "integer"]]
     returns: Literal["string", "number", "boolean", "integer"]
 
-    @model_validator(mode="after")
-    def definition_validation(self) -> Self:
-        if not self.name.startswith("fn_"):
-            raise PydanticCustomError(
-                "ValueError",
-                "function name must start with 'fn_'"
-            )
-        return self
-
     @staticmethod
     def mandatory_fields(data: list[dict[str, Any]]) -> None:
+        """Checks if all mandatory fields are available"""
         i = 1
         for function in data:
             if "name" not in function:
@@ -39,6 +31,7 @@ class Definitions(BaseModel):
 
     @staticmethod
     def function_values(data: list[dict[str, Any]]) -> None:
+        """Checks the formating of the json file"""
         i = 1
         for function in data:
             if not isinstance(function["parameters"], dict):
@@ -58,6 +51,9 @@ class Definitions(BaseModel):
 
     @classmethod
     def from_file(cls, file_path: str) -> list[Self]:
+        """Reads the file, checks all constraints
+        Returns a list of Definitions objects
+        """
         with open(file_path, 'r') as fd:
             data = json.load(fd)
         Definitions.mandatory_fields(data)

@@ -1,5 +1,5 @@
-from .parser import parse_arguments
+from .parser import ArgumentsParser
 from .definitions import Definitions
 
 
-__all__ = ["parse_arguments", "Definitions"]
+__all__ = ["ArgumentsParser", "Definitions"]

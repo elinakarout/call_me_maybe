@@ -1,10 +1,11 @@
-from src.parser import parse_arguments
+from src.parser import ArgumentsParser
 from src.model import Model
 from pydantic import ValidationError
 import argparse
 
 
 def main() -> None:
+    """Main Function running all scripts"""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--functions_definition",
@@ -22,7 +23,8 @@ def main() -> None:
         default='data/output/function_calling_results.json'
         )
     args = parser.parse_args()
-    prompts, definitions = parse_arguments(args)
+    args_parser = ArgumentsParser(args)
+    prompts, definitions = args_parser.parse_arguments()
     model = Model(definitions, prompts, args.output)
     model.function_calls()
 
