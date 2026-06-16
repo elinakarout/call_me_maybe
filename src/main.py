@@ -1,6 +1,5 @@
 from src.parser import parse_arguments
 from src.model import Model
-from pydantic import ValidationError
 import argparse
 
 
@@ -28,12 +27,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # try:
-    #     main()
-    # except ValidationError as e:
-    #     print(e.errors()[0]["msg"])
-    # except KeyboardInterrupt:
-    #     print("Stopped by user")
-    # except Exception as e:
-    #     print(e)
-    main()
+    try:
+        main()
+    except ValidationError as e:
+        print(e.errors()[0]["msg"])
+    except KeyboardInterrupt:
+        print("Stopped by user")
+    except Exception as e:
+        print(e)

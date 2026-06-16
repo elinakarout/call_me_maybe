@@ -1,4 +1,5 @@
 from .model import Model
+import re
 
 
 class FunctionCaller():
@@ -40,7 +41,9 @@ class FunctionCaller():
 
     def find_parameters(self) -> list[str]:
         # prompt = "Select the most appropriate parameters for this request."
-        # prompt += "\nAdd a double quote (\") at the end of string parameters,"
+        # prompt += (
+        #     "\nAdd a double quote (\") at the end of string parameters,"
+        # )
         # prompt += "to be later used in a json file"
         # prompt += "\nAnswer with only  the parameter, Nothing else"
         prompt = ""
@@ -54,13 +57,24 @@ class FunctionCaller():
         prompt += "\nfunction parameters:"
         for parameter, p_type in function.parameters.items():
             prompt += f" {parameter}({p_type})"
-        # prompt += "\nThe correct parameters for the function call are:"
+            types = p_type
+        if p_type == "number":
+            prompt += "\nSelect the most appropriate parameters for this request"
+            prompt += "\nAnswer with only the parameter, Nothing else"
+        else:
+            prompt += "Select the most appropriate parameters for this request."
+            prompt += "\nAdd a double quote (\") at the end of string"
+            prompt += " parameters, to be later used in a json file"
+            prompt += "\nAnswer with only  the parameter, Nothing else"
+            prompt += "\nThe correct parameters for the function call are:"
         self.model.output += "        \"parameters\": {\n"
+        number_idx = 0
         for parameter, p_type in function.parameters.items():
-            prompt += f"\n\n{parameter}: "
+            prompt += f"\n\n{parameter} = "
             self.model.output += f"            \"{parameter}\": "
             if p_type == "number":
-                param = self.find_number(prompt)
+                param = self.find_number(prompt, parameter, number_idx)
+                number_idx += 1
                 prompt += param
                 params.append(param)
             if p_type == "boolean":
@@ -77,34 +91,53 @@ class FunctionCaller():
         self.model.output += "\n        }\n    },\n"
         return params
 
-    def find_number(self, half_prompt: str) -> str:
-        prompt = "Select the most appropriate parameters for this request"
-        prompt += "\nAnswer with only the parameter, Nothing else\n\n"
-        prompt += half_prompt
-        print(prompt)
+    def find_number(self, prompt: str, parameter: str, number_idx: int) -> str:
         tokens = self.model.llm.encode(prompt)[0].tolist()
         prompt_len = len(tokens)
+        request_numbers = re.findall(r"-?\d+(?:\.\d+)?", self.request)
+        is_negative = False
+        if number_idx < len(request_numbers):
+            is_negative = request_numbers[number_idx].startswith("-")
+        valid_first_answer = []
+        for token, value in self.model.token_to_value.items():
+            cleaned = value.replace('Ġ', ' ').replace(' ', ' ').strip()
+            if not cleaned:
+                continue
+            if is_negative:
+                if cleaned == "-":
+                    if "\n" not in value and "\r" not in value:
+                        valid_first_answer.append(value)
+            else:
+                if cleaned == "+" or cleaned[0] in "0123456789":
+                    if "\n" not in value and "\r" not in value:
+                        valid_first_answer.append(value)
         valid_answers = [str(i) for i in range(10)]
         valid_answers.append(".")
-        valid_answers.append("-")
-        answer = ""
+        scores = self.model.llm.get_logits_from_input_ids(tokens)
+        for token, value in self.model.token_to_value.items():
+            if value not in valid_first_answer:
+                scores[token] = float("-inf")
+        best_token = scores.index(max(scores))
+        tokens.append(best_token)
         for i in range(30):
             scores = self.model.llm.get_logits_from_input_ids(tokens)
             for token, value in self.model.token_to_value.items():
                 if value not in valid_answers:
                     scores[token] = float("-inf")
             best_token = scores.index(max(scores))
-            # print(f"score of -: {scores[self.model.value_to_token['-']]}")
-            # print(f"score of {self.model.token_to_value[best_token]}: {best_score}")
+            # print(f"score of -: "
+            #       f"{scores[self.model.value_to_token['-']]}")
+            # print(f"score of {self.model.token_to_value[best_token]}: "
+            #       f"{best_score}")
             tokens.append(best_token)
-            if "." not in  valid_answers:
+            if "." not in valid_answers:
                 break
-            if i == 0:
-                valid_answers.remove("-")
             if best_token == self.model.value_to_token["."]:
                 valid_answers.remove('.')
         answer_tokens = tokens[prompt_len:]
-        answer = str(self.model.llm.decode(answer_tokens))
+        answer = str(self.model.llm.decode(answer_tokens)).strip()
+        if answer.startswith("+"):
+            answer = answer[1:]
         return answer
 
     def find_bool(self, prompt: str) -> str:
@@ -131,12 +164,7 @@ class FunctionCaller():
                 return answer
         return answer
 
-    def find_string(self, half_prompt: str) -> str:
-        prompt = "Select the most appropriate parameters for this request."
-        prompt += "\nAdd a double quote (\") at the end of string parameters,"
-        prompt += "to be later used in a json file"
-        prompt += "\nAnswer with only  the parameter, Nothing else"
-        prompt += half_prompt
+    def find_string(self, prompt: str) -> str:
         tokens = self.model.llm.encode(prompt)[0].tolist()
         prompt_len = len(tokens)
         answer = ""
