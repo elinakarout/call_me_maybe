@@ -69,6 +69,8 @@ class Model():
         from .function_calls import FunctionCaller
         self.output += "[\n"
         for request in self.requests:
+            if not request.strip():
+                continue
             self.output += "    {\n"
             prompt = self.remove_double_quotes(request)
             self.output += f"        \"prompt\": \"{prompt}\",\n"

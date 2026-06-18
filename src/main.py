@@ -1,9 +1,3 @@
-from src.parser import ArgumentsParser
-from src.model import Model
-from pydantic import ValidationError
-import argparse
-
-
 def main() -> None:
     """Main Function running all scripts"""
     parser = argparse.ArgumentParser()
@@ -31,10 +25,16 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
+        from src.parser import ArgumentsParser
+        from src.model import Model
+        from pydantic import ValidationError
+        import argparse
         main()
-    except ValidationError as e:
-        print(e.errors()[0]["msg"])
     except KeyboardInterrupt:
         print("Stopped by user")
+    except ValidationError as e:
+        print(e.errors()[0]["msg"])
     except Exception as e:
         print(e)
+    finally:
+        print("Thank you for checking my project :)")

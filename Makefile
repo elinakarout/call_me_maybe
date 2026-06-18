@@ -16,7 +16,7 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	rm -rf .mypy_cache .pytest_cache
 
-run: clean
+run:
 	uv run $(PYTHON) -m $(MAIN)
 
 lint:
