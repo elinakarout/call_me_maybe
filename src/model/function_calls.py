@@ -1,5 +1,6 @@
 from .model import Model
 from ..parser import Definitions
+from typing import Any
 import re
 
 
@@ -21,6 +22,7 @@ class FunctionCaller():
             definition.name
             for definition in self.definitions
         ]
+        print("Finding Best Function...\n")
         prompt = self.prompt
         prompt += "\n\nBest function name: "
         answer = ""
@@ -40,7 +42,7 @@ class FunctionCaller():
                         best_answer = self.model.llm.decode([tokens[i]])
             answer += best_answer
             if answer in available_functions:
-                self.model.output += f"        \"name\": \"{answer}\",\n"
+                print("Function Found!\n")
                 return answer
         return ""
 
@@ -74,37 +76,37 @@ class FunctionCaller():
             prompt += "\nThe correct parameters for the function call are:"
         return prompt
 
-    def find_parameters(self) -> list[str]:
+    def find_parameters(self) -> dict[str, Any]:
         """Calls the specific function for each parameter type,
         and returns the arguments provided by the model.
         """
-        params = []
+        print("Analysing parameters...\n")
+        params: dict[str, Any] = {}
         self.prompt = self.system_prompt_for_params()
-        self.model.output += "        \"parameters\": {\n"
         number_idx = 0
+        i = 1
         for parameter, p_type in self.function.parameters.items():
+            print(f"Finding parameter {i}...\n")
             self.prompt += f"\n\n{parameter} = "
-            self.model.output += f"            \"{parameter}\": "
             if p_type == "number" or p_type == "integer":
                 param = self.find_number(parameter, number_idx)
                 number_idx += 1
                 self.prompt += param
+                print(f"Parameter {i} Found!\n")
                 if p_type == "integer":
-                    param = param[:-2]
-                params.append(param)
+                    params[parameter] = int(float(param))
+                else:
+                    params[parameter] = float(param)
             elif p_type == "boolean":
                 param = self.find_bool()
                 self.prompt += param
-                params.append(param)
+                params[parameter] = param
             elif p_type == "string":
-                self.model.output += "\""
                 self.prompt += "\""
                 param = self.find_string()
                 self.prompt += param
-                params.append(param)
-            self.model.output += f"{param},\n"
-        self.model.output = self.model.output[:-2]
-        self.model.output += "\n        }\n    },\n"
+                params[parameter] = param
+            i += 1
         return params
 
     def generate_sign(self, number_idx: int, tokens: list[int]) -> int:
@@ -139,6 +141,7 @@ class FunctionCaller():
         prompt_len = len(tokens)
         valid_answers = [str(i) for i in range(10)]
         valid_answers.append(".")
+        decimal_count = 0
         tokens.append(self.generate_sign(number_idx, tokens))
         for i in range(30):
             scores = self.model.llm.get_logits_from_input_ids(tokens)
@@ -148,9 +151,11 @@ class FunctionCaller():
             best_token = scores.index(max(scores))
             tokens.append(best_token)
             if "." not in valid_answers:
-                break
+                decimal_count += 1
             if best_token == self.model.value_to_token["."]:
                 valid_answers.remove('.')
+            if decimal_count >= 4:
+                break
         answer_tokens = tokens[prompt_len:]
         answer = str(self.model.llm.decode(answer_tokens)).strip()
         if answer.startswith("+"):
@@ -206,4 +211,4 @@ class FunctionCaller():
         answer = str(self.model.llm.decode(answer_tokens))
         if not answer.endswith('"'):
             answer += '"'
-        return answer
+        return answer[:-1]

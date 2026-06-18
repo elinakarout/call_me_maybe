@@ -25,9 +25,9 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
+        from pydantic import ValidationError
         from src.parser import ArgumentsParser
         from src.model import Model
-        from pydantic import ValidationError
         import argparse
         main()
     except KeyboardInterrupt:

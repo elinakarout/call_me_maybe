@@ -1,7 +1,14 @@
 from ..parser import Definitions
 from llm_sdk import Small_LLM_Model
 from pathlib import Path
+from pydantic import BaseModel
 import json
+
+
+class Prompt(BaseModel):
+    prompt: str
+    name: str
+    parameters: dict[str, int | float | str]
 
 
 class Model():
@@ -18,7 +25,7 @@ class Model():
         self.token_to_value = self.get_token_to_value()
         self.value_to_token = self.get_value_to_token()
         self.prompt = self.get_model_prompt()
-        self.output = ""
+        self.prompts: list[Prompt] = []
 
     def get_token_to_value(self) -> dict[int, str]:
         """Returns a dict of format {token_id: value}"""
@@ -55,11 +62,6 @@ class Model():
             i += 1
         return prompt
 
-    @staticmethod
-    def remove_double_quotes(s: str) -> str:
-        """Changes double quotes to single quote for json"""
-        return s.replace('"', '\'')
-
     def function_calls(self) -> None:
         """Loops throught the prompts, and
         calls FunctionCaller class for each.
@@ -67,17 +69,27 @@ class Model():
         to the specified file
         """
         from .function_calls import FunctionCaller
-        self.output += "[\n"
         for request in self.requests:
             if not request.strip():
                 continue
-            self.output += "    {\n"
-            prompt = self.remove_double_quotes(request)
-            self.output += f"        \"prompt\": \"{prompt}\",\n"
-            FunctionCaller(self, request)
-        self.output = self.output[:-2]
-        self.output += "\n]"
+            try:
+                print(f"Analysing Request: \"{request}\"...\n")
+                function = FunctionCaller(self, request)
+                call = Prompt(
+                    prompt=request,
+                    name=function.function_name,
+                    parameters=function.parameters
+                )
+                self.prompts.append(call)
+            except Exception:
+                print("Error!\n")
+                print("Resuming...\n")
+                continue
+        json_text = json.dumps(
+            [p.model_dump() for p in self.prompts],
+            indent=4
+        )
         path = Path(self.outfile)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as fd:
-            fd.write(self.output)
+            fd.write(json_text)
